@@ -300,7 +300,7 @@ npm run test:coverage
 npm run benchmark
 ```
 
-## 🛠️ Development
+## Development
 
 ### Project Structure
 
