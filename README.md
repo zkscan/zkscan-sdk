@@ -12,21 +12,21 @@
 
 </div>
 
-## 🌟 Overview
+## Overview
 
 zkScan is a revolutionary blockchain explorer that leverages **zero-knowledge cryptography** to enable users to query blockchain data without revealing their query patterns. By combining **Groth16 proofs**, **Poseidon hashing**, and **Pedersen commitments**, zkScan provides verifiable, privacy-preserving access to Solana blockchain data.
 
 ### Key Features
 
-- 🔒 **Privacy-First Design**: Query blockchain data without revealing what you're looking for
-- ✅ **Cryptographic Verification**: All queries are backed by zero-knowledge proofs
-- ⚡ **High Performance**: Optimized circuits with minimal constraint counts
-- 🌐 **Production-Ready API**: RESTful API with comprehensive rate limiting and monitoring
-- 🔐 **Secure Architecture**: API key management with SHA-256 hashing and row-level security
-- 📊 **Rich Data Sources**: Integrates Helius, DexScreener, and native Solana RPC
-- 🎯 **Type-Safe**: Full TypeScript implementation with comprehensive types
+- **Privacy-First Design**: Query blockchain data without revealing what you're looking for
+- **Cryptographic Verification**: All queries are backed by zero-knowledge proofs
+- **High Performance**: Optimized circuits with minimal constraint counts
+- **Production-Ready API**: RESTful API with comprehensive rate limiting and monitoring
+- **Secure Architecture**: API key management with SHA-256 hashing and row-level security
+- **Rich Data Sources**: Integrates Helius, DexScreener, and native Solana RPC
+- **Type-Safe**: Full TypeScript implementation with comprehensive types
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐
@@ -56,7 +56,7 @@ zkScan is a revolutionary blockchain explorer that leverages **zero-knowledge cr
 3. **Range Proofs**: Prove values lie within bounds without revealing them (284 constraints)
 4. **Query Proofs**: Demonstrate knowledge of query preimage without exposure (512 constraints)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -122,7 +122,7 @@ const isValid = await ZKOperations.verifyProof(proof);
 console.log('Proof valid:', isValid);
 ```
 
-## 📚 Documentation
+## Documentation
 
 ### Core Modules
 
@@ -174,7 +174,7 @@ Custom ZK circuits implemented in Circom:
 - `poseidon.circom`: Poseidon hash implementation
 - `range.circom`: Range proof circuit
 
-## 🔐 Cryptographic Primitives
+## Cryptographic Primitives
 
 ### Poseidon Hashing
 
@@ -233,7 +233,7 @@ interface ZKProof {
 }
 ```
 
-## 🌐 API Reference
+## API Reference
 
 ### Authentication
 
@@ -284,7 +284,7 @@ Authorization: Bearer {API_KEY}
 | `transaction` | Transaction signature | `5jK8ZqG3...` (88 chars) |
 | `token` | Token mint address | `EPjFWdd5Auf...` |
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all tests
@@ -317,7 +317,7 @@ zkscan-core/
 └── docs/                 # Documentation
 ```
 
-## 🔒 Security
+## Security
 
 ### Threat Model
 
@@ -336,7 +336,7 @@ zkScan is designed to protect against:
 - Input validation prevents injection attacks
 - Constant-time operations prevent timing attacks
 
-## 📊 Performance
+## Performance
 
 ### Benchmarks
 
@@ -348,11 +348,11 @@ zkScan is designed to protect against:
 | Query Proof Generation | 250ms | 512 |
 | Proof Verification | 15ms | N/A |
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Circom & SnarkJS**: Zero-knowledge circuit framework by iden3
 - **Poseidon Hash**: Design by Grassi et al.
@@ -360,7 +360,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 - **Solana Foundation**: Blockchain infrastructure
 - **Helius**: Enhanced RPC services
 
-## 📞 Contact
+## Contact
 
 - **Website**: https://zkscan.app
 - **Twitter**: [@zkscanapp](https://x.com/zkscanapp)
@@ -370,7 +370,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 <div align="center">
 
-**Built with ❤️ for the Solana ecosystem**
+**Built for the Solana ecosystem**
 
 *Making blockchain data private, verifiable, and accessible to everyone*
 
