@@ -1,5 +1,5 @@
-<div align="center">
 # zkScan: Privacy-Preserving Blockchain Explorer
+<div align="center">
 
 **A next-generation blockchain explorer that uses zero-knowledge proofs to enable private, verifiable queries on Solana**
 
