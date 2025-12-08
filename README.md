@@ -375,3 +375,15 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 *Making blockchain data private, verifiable, and accessible to everyone*
 
 </div>
+
+
+## Changelog
+
+### 1.1.0
+
+- Added public SDK entrypoint (src/index.ts) for cleaner imports.
+- Introduced configurable retry logic and network robustness in the API client.
+- Added detailed batch query support with per item success and error reporting.
+- Exposed ZK warmup and circuit metadata helpers in ZKOperations.
+- Introduced a minimal CLI (zkscan) for shell based exploration.
+- Updated package metadata to reflect the new version.

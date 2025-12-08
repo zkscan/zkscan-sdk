@@ -1,6 +1,6 @@
 {
   "name": "@zkscan/core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Privacy-preserving blockchain explorer using zero-knowledge proofs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -56,5 +56,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "bin": {
+    "zkscan": "dist/cli/zkscan.js"
   }
 }
