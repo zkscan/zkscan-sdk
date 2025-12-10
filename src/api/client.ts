@@ -24,13 +24,18 @@ export interface ZKScanConfig {
   apiKey: string;
   /** Enable automatic ZK proof generation (default: true) */
   enableProofs?: boolean;
+  /** Enable client side verification of generated proofs (default: true) */
+  verifyLocalProofs?: boolean;
   /** Request timeout in milliseconds (default: 30000) */
   timeout?: number;
   /** Maximum number of automatic retries for transient failures (default: 2) */
   maxRetries?: number;
   /** Base delay in milliseconds between retries (default: 500) */
   retryDelayMs?: number;
+  /** Optional logger callback for observability */
+  onEvent?: (event: ZKScanClientEvent) => void;
 }
+
 
 
 /**
@@ -48,6 +53,20 @@ export interface ZKScanResponse<T = any> {
     queryHash: string;
     responseHash: string;
   }
+
+/**
+ * Lightweight event payload emitted by the client for observability.
+ */
+export interface ZKScanClientEvent {
+  type:
+    | 'proof:created'
+    | 'proof:verified'
+    | 'request:sent'
+    | 'request:retry'
+    | 'request:failed';
+  timestamp: number;
+  details?: Record<string, any>;
+}
 /**
  * Batch query item configuration
  */
@@ -166,10 +185,13 @@ export class ZKScanClient {
   this.config = {
     ...config,
     enableProofs: config.enableProofs ?? true,
+    verifyLocalProofs: config.verifyLocalProofs ?? true,
     timeout: config.timeout ?? 30000,
     maxRetries: config.maxRetries ?? 2,
     retryDelayMs: config.retryDelayMs ?? 500
   };
+}
+;
 }
 ;
   }
@@ -287,7 +309,9 @@ export class ZKScanClient {
       try {
         // In a real implementation, this would generate a circuit-based proof
         // For now, we create a simplified proof structure
-        proof = await ZKOperations.createSimpleProof(queryString);
+        const proofBundle = await ZKOperations.createAndVerifyQueryProof({ query: queryString });
+        this.emitEvent({ type: 'proof:created', timestamp: Date.now(), details: { queryLength: queryString.length } });
+        proof = proofBundle.proof;
       } catch (error) {
         console.warn('Failed to generate ZK proof:', error);
         // Continue without proof - API may accept queries without proofs
@@ -440,6 +464,19 @@ private isRetriableStatus(status: number): boolean {
  *
  * @private
  */
+
+/**
+ * Emit a client side event if an event handler is configured.
+ */
+private emitEvent(event: ZKScanClientEvent): void {
+  if (typeof this.config.onEvent === 'function') {
+    try {
+      this.config.onEvent(event);
+    } catch {
+      // User supplied handlers must not break the client
+    }
+  }
+}
 private async delay(ms: number): Promise<void> {
   if (ms <= 0) {
     return;

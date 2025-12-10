@@ -387,3 +387,12 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 - Exposed ZK warmup and circuit metadata helpers in ZKOperations.
 - Introduced a minimal CLI (zkscan) for shell based exploration.
 - Updated package metadata to reflect the new version.
+
+### 1.2.0
+
+- Introduced circuit artifact caching to avoid repeated circuit loading.
+- Added high level `createAndVerifyQueryProof` helper in ZKOperations.
+- Extended client config with event hooks and local proof verification toggle.
+- Added lightweight client side observability through `ZKScanClientEvent`.
+- Improved CLI with query type flags and a `--no-proofs` option.
+- Bumped SDK version to 1.2.0.

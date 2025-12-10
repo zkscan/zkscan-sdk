@@ -1,9 +1,41 @@
 #!/usr/bin/env node
 /**
- * Simple command line interface for zkScan.
+ * Command line interface for zkScan.
+ *
+ * Supports automatic query detection, explicit query types and an option
+ * to disable proof generation for debugging or rapid iteration.
  */
 
-import { ZKScanClient } from '../api/client';
+import { ZKScanClient, QueryType } from '../api/client';
+
+interface ParsedArgs {
+  type?: QueryType;
+  value?: string;
+  proofs: boolean;
+}
+
+function parseArgs(argv: string[]): ParsedArgs {
+  const args = argv.slice(2);
+  const parsed: ParsedArgs = {
+    proofs: true
+  };
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+
+    if (arg === '--type' && args[i + 1]) {
+      const t = args[i + 1] as QueryType;
+      parsed.type = t;
+      i += 1;
+    } else if (arg === '--no-proofs') {
+      parsed.proofs = false;
+    } else if (!parsed.value) {
+      parsed.value = arg;
+    }
+  }
+
+  return parsed;
+}
 
 async function main(): Promise<void> {
   const apiUrl = process.env.ZKSCAN_API_URL || 'https://zkscan.app/api';
@@ -14,20 +46,23 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  const parsed = parseArgs(process.argv);
+
+  if (!parsed.value) {
+    console.error('Usage: zkscan [--type wallet|transaction|token] [--no-proofs] "<address | signature | mint>"');
+    process.exit(1);
+  }
+
   const client = new ZKScanClient({
     apiUrl,
     apiKey
   });
 
-  const input = process.argv[2];
-
-  if (!input) {
-    console.error('Usage: zkscan "<address | signature | mint>"');
-    process.exit(1);
-  }
-
   try {
-    const result = await client.queryAuto(input, true);
+    const result = parsed.type
+      ? await client.query(parsed.type, parsed.value, parsed.proofs)
+      : await client.queryAuto(parsed.value, parsed.proofs);
+
     console.log(JSON.stringify(result, null, 2));
   } catch (error: any) {
     console.error('Query failed:', error?.message ?? String(error));
