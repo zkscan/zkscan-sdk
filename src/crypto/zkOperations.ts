@@ -56,105 +56,60 @@ export interface ZKProof {
   /** Public signals that are revealed as part of the proof */
   publicSignals: string[];
 
-/**
- * Warm up the zero knowledge stack by eagerly initializing cryptographic
- * primitives. This is useful for latency sensitive applications where the
- * first query should not pay the initialization cost.
- */
-static async warmup(): Promise<void> {
-  await initializeLibraries();
-  await getPoseidon();
-  await getBabyjub();
-}
-
-/**
- * Return metadata about the available circuits that can be used with
- * this SDK. This is helpful for tooling, diagnostics, and dashboards.
- *
- * @returns {CircuitInfo[]} List of supported circuits and their properties
- */
-static getAvailableCircuits(): CircuitInfo[] {
-  return availableCircuits.map((circuit) => ({ ...circuit }));
-}
-
-/**
- * Convenience helper for hashing a structured query object using Poseidon.
- *
- * @param {{ type: string; value: string }} query - Query definition
- * @returns {Promise<string>} Poseidon hash as hex string with 0x prefix
- */
-static async poseidonHashQuery(query: { type: string; value: string }): Promise<string> {
-  const serialized = `${query.type}:${query.value}`;
-  return this.poseidonHash([serialized]);
-}
-
-/**
- * Internal cache for loaded circuit artifacts so that they do not need
- * to be fetched and instantiated repeatedly. This is especially useful
- * for browser environments where network round trips are expensive.
- */
-private static circuitCache: Record<string, CircuitArtifacts> = {};
-
-/**
- * Load a circuit by identifier and keep it cached in memory.
- * If the circuit is already loaded, the cached version is returned.
- */
-static async loadCircuit(id: string): Promise<CircuitArtifacts> {
-  if (this.circuitCache[id]) {
-    return this.circuitCache[id];
+static readonly profiles = {
+  fast: {
+    label: 'fast',
+    description: 'Favor lower latency over strict verification extras'
+  },
+  balanced: {
+    label: 'balanced',
+    description: 'Balanced tradeoff between speed and safety'
+  },
+  paranoid: {
+    label: 'paranoid',
+    description: 'Enable all additional checks and validations'
   }
+} as const;
 
-  const circuit = availableCircuits.find(c => c.id === id);
-  if (!circuit) {
-    throw new Error(`Unknown circuit id: ${id}`);
-  }
+static async benchmarkQueryProof(query: string): Promise<{
+  totalMs: number;
+  hashMs: number;
+  proveMs: number;
+  verifyMs: number;
+}> {
+  const hasPerf = typeof performance !== 'undefined' && typeof performance.now === 'function';
+  const now = hasPerf ? () => performance.now() : () => Date.now();
 
-  const artifacts = await loadCircuitArtifacts(circuit);
-  this.circuitCache[id] = artifacts;
-  return artifacts;
+  const start = now();
+  const hashStart = now();
+  const queryHash = await this.poseidonHash([query]);
+  const hashMs = now() - hashStart;
+
+  const proveStart = now();
+  const { proof, publicSignals } = await this.createAndVerifyQueryProof({
+    query
+  });
+  const proveMs = now() - proveStart;
+
+  const verifyStart = now();
+  const verifyMs = now() - verifyStart;
+
+  const totalMs = now() - start;
+
+  return {
+    totalMs,
+    hashMs,
+    proveMs,
+    verifyMs
+  };
 }
 
-/**
- * Clear all cached circuit artifacts. This is useful when you want to
- * release memory or reload circuits after an update.
- */
-static clearCircuitCache(): void {
-  this.circuitCache = {};
-}
-
-/**
- * High level helper that performs the full query hashing, proof generation
- * and verification pipeline for a given query string and circuit id.
- *
- * This is a convenience for applications that want a single call that
- * returns everything required for a zkScan request.
- */
-static async createAndVerifyQueryProof(options: {
-  circuitId?: string;
-  query: string;
-}): Promise<{
+static async proveInWorker(query: string): Promise<{
   proof: any;
   publicSignals: any;
   queryHash: string;
 }> {
-  const circuitId = options.circuitId ?? 'zkQuery';
-  const { prover, vkey } = await this.loadCircuit(circuitId);
-  const queryHash = await this.poseidonHash([options.query]);
-
-  const { proof, publicSignals } = await prover({
-    queryInput: options.query
-  });
-
-  const isValid = await this.verifyProofWithKey(proof, publicSignals, vkey);
-  if (!isValid) {
-    throw new Error('Generated proof did not verify');
-  }
-
-  return {
-    proof,
-    publicSignals,
-    queryHash
-  };
+  return this.createAndVerifyQueryProof({ query });
 }
 }
 

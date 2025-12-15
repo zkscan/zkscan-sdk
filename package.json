@@ -1,9 +1,9 @@
 {
   "name": "@zkscan/core",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "Privacy-preserving blockchain explorer using zero-knowledge proofs",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/types/index.d.ts",
   "scripts": {
     "build": "tsc",
     "build:circuits": "node scripts/build-circuits.js",
@@ -12,19 +12,26 @@
     "benchmark": "node benchmarks/run-all.js",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "docs": "typedoc src/index.ts"
+    "docs": "typedoc src/index.ts",
+    "build:cjs": "tsc -p tsconfig.json --module commonjs --outDir dist/cjs",
+    "build:esm": "tsc -p tsconfig.json --module esnext --outDir dist/esm",
+    "build:types": "tsc -p tsconfig.json --emitDeclarationOnly --outDir dist/types"
   },
   "keywords": [
-    "zero-knowledge",
     "blockchain",
-    "privacy",
-    "solana",
-    "cryptography",
-    "zk-snark",
     "circom",
+    "cryptography",
+    "explorer",
     "groth16",
+    "pedersen",
     "poseidon",
-    "pedersen"
+    "privacy",
+    "sdk",
+    "solana",
+    "zero knowledge",
+    "zero-knowledge",
+    "zk",
+    "zk-snark"
   ],
   "author": "zkScan Team",
   "license": "MIT",
@@ -56,6 +63,15 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./cli": "./dist/cli/zkscan.js"
   },
   "bin": {
     "zkscan": "dist/cli/zkscan.js"

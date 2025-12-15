@@ -379,20 +379,15 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Changelog
 
-### 1.1.0
+### 2.0.0
 
-- Added public SDK entrypoint (src/index.ts) for cleaner imports.
-- Introduced configurable retry logic and network robustness in the API client.
-- Added detailed batch query support with per item success and error reporting.
-- Exposed ZK warmup and circuit metadata helpers in ZKOperations.
-- Introduced a minimal CLI (zkscan) for shell based exploration.
-- Updated package metadata to reflect the new version.
-
-### 1.2.0
-
-- Introduced circuit artifact caching to avoid repeated circuit loading.
-- Added high level `createAndVerifyQueryProof` helper in ZKOperations.
-- Extended client config with event hooks and local proof verification toggle.
-- Added lightweight client side observability through `ZKScanClientEvent`.
-- Improved CLI with query type flags and a `--no-proofs` option.
-- Bumped SDK version to 1.2.0.
+- Added specialized Circom circuits for wallet, transaction, token and multi field queries.
+- Introduced aggregate query circuit for compressed multi proof style hashing.
+- Reworked query detection with confidence scores and detailed reasons.
+- Extended ZKOperations with profiles, benchmark helpers and worker ready entry point.
+- Added explicit error classes and proof policy configuration to the API client.
+- Extended the CLI with query, circuits, benchmark and raw commands.
+- Added multiple examples for wallet lookup, event logging and detailed batch queries.
+- Introduced tests for the query detector, client defaults and CLI scaffold.
+- Documented circuits, CLI usage and client events under docs/.
+- Updated package metadata for dual CJS and ESM builds.

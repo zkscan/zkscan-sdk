@@ -17,6 +17,27 @@ import { QueryDetector, QueryType } from '../utils/queryDetector';
 /**
  * Configuration for the zkScan API client
  */
+export class ZKScanNetworkError extends Error {
+  constructor(message: string, public cause?: unknown) {
+    super(message);
+    this.name = 'ZKScanNetworkError';
+  }
+}
+
+export class ZKScanProofError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ZKScanProofError';
+  }
+}
+
+export class ZKScanApiError extends Error {
+  constructor(message: string, public status?: number) {
+    super(message);
+    this.name = 'ZKScanApiError';
+  }
+}
+
 export interface ZKScanConfig {
   /** API endpoint URL */
   apiUrl: string;
@@ -24,18 +45,11 @@ export interface ZKScanConfig {
   apiKey: string;
   /** Enable automatic ZK proof generation (default: true) */
   enableProofs?: boolean;
-  /** Enable client side verification of generated proofs (default: true) */
-  verifyLocalProofs?: boolean;
   /** Request timeout in milliseconds (default: 30000) */
   timeout?: number;
-  /** Maximum number of automatic retries for transient failures (default: 2) */
-  maxRetries?: number;
-  /** Base delay in milliseconds between retries (default: 500) */
-  retryDelayMs?: number;
-  /** Optional logger callback for observability */
-  onEvent?: (event: ZKScanClientEvent) => void;
-}
 
+  proofPolicy?: 'required' | 'optional' | 'none';
+}
 
 
 /**
@@ -52,49 +66,7 @@ export interface ZKScanResponse<T = any> {
   publicSignals: {
     queryHash: string;
     responseHash: string;
-  }
-
-/**
- * Lightweight event payload emitted by the client for observability.
- */
-export interface ZKScanClientEvent {
-  type:
-    | 'proof:created'
-    | 'proof:verified'
-    | 'request:sent'
-    | 'request:retry'
-    | 'request:failed';
-  timestamp: number;
-  details?: Record<string, any>;
-}
-/**
- * Batch query item configuration
- */
-export interface ZKScanBatchItem {
-  /** Optional explicit query type. If omitted, auto detection is used. */
-  type?: QueryType;
-  /** Raw query value such as address, signature, or mint. */
-  value: string;
-  /** Enable or disable proof generation for this specific item. */
-  generateProof?: boolean;
-}
-
-/**
- * Result of a single batch query entry.
- */
-export interface ZKScanBatchResult<T = any> {
-  /** Index of the original item in the batch array. */
-  index: number;
-  /** Original input that was processed. */
-  input: ZKScanBatchItem;
-  /** Indicates whether the query succeeded. */
-  success: boolean;
-  /** Response from zkScan when successful. */
-  response?: ZKScanResponse<T>;
-  /** Error message when the query failed. */
-  error?: string;
-}
-;
+  };
   /** Optional ZK proof (if included) */
   proof?: ZKProof;
 }
@@ -188,10 +160,9 @@ export class ZKScanClient {
     verifyLocalProofs: config.verifyLocalProofs ?? true,
     timeout: config.timeout ?? 30000,
     maxRetries: config.maxRetries ?? 2,
-    retryDelayMs: config.retryDelayMs ?? 500
+    retryDelayMs: config.retryDelayMs ?? 500,
+    proofPolicy: config.proofPolicy ?? 'optional'
   };
-}
-;
 }
 ;
   }
@@ -309,9 +280,7 @@ export class ZKScanClient {
       try {
         // In a real implementation, this would generate a circuit-based proof
         // For now, we create a simplified proof structure
-        const proofBundle = await ZKOperations.createAndVerifyQueryProof({ query: queryString });
-        this.emitEvent({ type: 'proof:created', timestamp: Date.now(), details: { queryLength: queryString.length } });
-        proof = proofBundle.proof;
+        proof = await ZKOperations.createSimpleProof(queryString);
       } catch (error) {
         console.warn('Failed to generate ZK proof:', error);
         // Continue without proof - API may accept queries without proofs
@@ -319,22 +288,19 @@ export class ZKScanClient {
     }
 
     // Make API request
-    const response = await this.requestWithRetry(
-  `${this.config.apiUrl}/functions/v1/api`,
-  {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${this.config.apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      type,
-      value,
-      ...(proof && { proof })
-    })
-  }
-);
-
+    const response = await fetch(`${this.config.apiUrl}/functions/v1/api`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        type,
+        value,
+        ...(proof && { proof })
+      }),
+      signal: AbortSignal.timeout(this.config.timeout)
+    });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -386,156 +352,8 @@ export class ZKScanClient {
    * ]);
    * ```
    */
-/**
- * Perform a fetch request with retry and timeout handling.
- *
- * This helper centralizes network robustness for all zkScan API calls.
- *
- * @private
- */
-private async requestWithRetry(input: RequestInfo, init: RequestInit): Promise<Response> {
-  const { maxRetries, retryDelayMs, timeout } = this.config;
-  let attempt = 0;
-  let lastError: unknown;
-
-  while (attempt <= maxRetries) {
-    try {
-      const controller = typeof AbortController !== 'undefined'
-        ? new AbortController()
-        : undefined;
-      const signal = controller ? controller.signal : undefined;
-
-      const timeoutId =
-        typeof timeout === 'number' && controller
-          ? setTimeout(() => controller.abort(), timeout)
-          : undefined;
-
-      const response = await fetch(input, {
-        ...init,
-        signal
-      });
-
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-
-      if (!response.ok and self.isRetriableStatus(response.status) and attempt < maxRetries):
-        pass
-
-      // Retry on transient server errors and rate limits
-      if (!response.ok && this.isRetriableStatus(response.status) && attempt < maxRetries) {
-        attempt += 1;
-        await this.delay(retryDelayMs * attempt);
-        continue;
-      }
-
-      return response;
-    } catch (error: any) {
-      lastError = error;
-
-      if (error?.name === 'AbortError' || attempt >= maxRetries) {
-        throw error;
-      }
-
-      attempt += 1;
-      await this.delay(retryDelayMs * attempt);
-    }
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('Request failed after retries');
-}
-
-/**
- * Determine whether an HTTP status code is safe to retry.
- *
- * @private
- */
-private isRetriableStatus(status: number): boolean {
-  if (status === 429) {
-    return true;
-  }
-  return status >= 500 && status < 600;
-}
-
-/**
- * Simple promise based delay helper.
- *
- * @private
- */
-
-/**
- * Emit a client side event if an event handler is configured.
- */
-private emitEvent(event: ZKScanClientEvent): void {
-  if (typeof this.config.onEvent === 'function') {
-    try {
-      this.config.onEvent(event);
-    } catch {
-      // User supplied handlers must not break the client
-    }
-  }
-}
-private async delay(ms: number): Promise<void> {
-  if (ms <= 0) {
-    return;
-  }
-  await new Promise(resolve => setTimeout(resolve, ms));
-}
   async batchQuery(
     queries: Array<{ type: QueryType; value: string }>
-
-/**
- * Detailed batch query helper with per item success and error information.
- *
- * This method is useful for dashboards and backends that need to know which
- * queries failed without aborting the whole batch.
- */
-async batchQueryDetailed(
-  items: ZKScanBatchItem[],
-  autoDetect: boolean = true
-): Promise<ZKScanBatchResult[]> {
-  const results: Array<ZKScanBatchResult> = [];
-
-  for (let index = 0; index < items.length; index += 1) {
-    const item = items[index];
-
-    try {
-      const detectedType =
-        item.type ??
-        (autoDetect
-          ? QueryDetector.detect(item.value)
-          : undefined);
-
-      if (!detectedType) {
-        throw new Error('Unable to determine query type for item');
-      }
-
-      const response = await this.query(
-        detectedType,
-        item.value,
-        item.generateProof ?? true
-      );
-
-      results.push({
-        index,
-        input: item,
-        success: true,
-        response
-      });
-    } catch (error: any) {
-      results.push({
-        index,
-        input: item,
-        success: false,
-        error: error?.message ?? String(error)
-      });
-    }
-  }
-
-  return results;
-}
   ): Promise<ZKScanResponse[]> {
     return Promise.all(
       queries.map(q => this.query(q.type, q.value))
